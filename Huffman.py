@@ -66,7 +66,7 @@ def encode(text, encoding_dictionary):
     return binary_code
 
 
-def _get_encoding_table(text):
+def get_encoding_table(text):
     """
         С помощью алгоритма Хаффмана кодирует каждый символ
     :param text: текст, символы которого надо закодировать
@@ -77,6 +77,11 @@ def _get_encoding_table(text):
     for character, count in frequency_dictionary.items():
         heapq.heappush(queue, Node(count, character))
 
+    if len(queue) == 0:
+        return dict()
+    elif len(queue) == 1:
+        return {queue[0].value: "0"}
+
     while len(queue) > 1:
         first = heapq.heappop(queue)
         second = heapq.heappop(queue)
@@ -85,7 +90,7 @@ def _get_encoding_table(text):
     return _walk_through_Huffman_tree(queue[0])
 
 
-def _swap_dictionary(dictionary):
+def swap_dictionary(dictionary):
     swapped_dictionary = dict()
     for key, value in dictionary.items():
         swapped_dictionary[value] = key
@@ -114,4 +119,4 @@ def _walk_through_Huffman_tree(root):
 
 if __name__ == '__main__':
     text = 'asdflllds;'
-    print(_get_encoding_table(text))
+    print(get_encoding_table(text))
