@@ -8,6 +8,8 @@ def _execute_archive_command(name, fileNames):
     try:
         create_archive_folder(working_directory, name, fileNames)
         print(f'Файлы {fileNames} успешно заархивированы в папку {name}')
+    except FileExistsError as e:
+        print(e)
     except ValueError as e:
         print(e)
 
@@ -42,7 +44,8 @@ def main():
     unarchive_parser.add_argument('archiveFolder', type=str,
                                   help='Название папки, которую надо разархивировать')
     unarchive_parser.add_argument('destination', type=str,
-                                  help='Место, куда ты будешь разархивировать файл')
+                                  help='Место, куда ты будешь разархивировать файл',
+                                  default=os.getcwd())
 
     args = parser.parse_args()
     if args.command == 'archive':

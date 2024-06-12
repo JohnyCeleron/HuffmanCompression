@@ -21,8 +21,8 @@ class MyTestCase(unittest.TestCase):
         """
         encoding_table = Huffman.get_encoding_table(text)
         decoding_table = Huffman.swap_dictionary(encoding_table)
-        binary_code = Huffman.encode(text, encoding_table)
-        decoded_text = Huffman.decode(binary_code, decoding_table)
+        binary_code = Huffman.encode(text, encoding_table, has_progressBar=False)
+        decoded_text = Huffman.decode(binary_code, decoding_table, has_progressBar=False)
         self.assertEqual(text, decoded_text)
 
     def test_special_symbols(self):

@@ -32,7 +32,7 @@ def unarchive_folder(archive_folder_path, destination):
         raise FileNotFoundError("No such archive folder")
     for file in os.listdir(archive_folder_path + '/'):
         file = str(file)
-        if file.endswith('.bin'):
+        if file.endswith('.bintxt'):
             _unarchive_txt(archive_folder_path, file, destination)
         elif file.endswith('.json'):
             continue
@@ -60,10 +60,10 @@ def _archive_txt(decoding_json_dict, encoding_json_dict, fileName,
             text += line
     encoding_table = Huffman.get_encoding_table(text)
     file = fileName.removesuffix('.txt')
-    fileZip_path = os.path.join(archive_folder + '\\', f'{file}.bin')
+    fileZip_path = os.path.join(archive_folder + '\\', f'{file}.bintxt')
     decoding_json_dict[fileZip_path] = Huffman.swap_dictionary(encoding_table)
     encoding_json_dict[fileZip_path] = encoding_table
-    bit_array = bitarray.bitarray(Huffman.encode(text, encoding_table))
+    bit_array = bitarray.bitarray(Huffman.encode(text, encoding_table, fileName))
     decoding_json_dict[fileZip_path]['len'] = len(bit_array)
     with open(fileZip_path, 'wb') as f:
         bit_array.tofile(f)
@@ -77,8 +77,8 @@ def _unarchive_txt(archive_folder, filename, destination):
     with open(filepath, 'rb') as f:
         binary_code.fromfile(f)
     binary_code = binary_code.to01()[:decoding_table['len']]
-    decoded_text = Huffman.decode(binary_code, decoding_table)
+    decoded_text = Huffman.decode(binary_code, decoding_table, filename)
     unarchived_path = os.path.join(destination,
-                                   filename.removesuffix('.bin') + '-unzip.txt')
+                                   filename.removesuffix('.bintxt') + '-unzip.txt')
     with open(unarchived_path, 'w+', encoding='utf-8') as f:
         f.write(decoded_text)

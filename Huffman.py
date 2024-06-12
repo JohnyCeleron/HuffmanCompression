@@ -31,9 +31,11 @@ class Node:
         return f'{self.value} {self.weight}'
 
 
-def decode(binary_code, decoding_dictionary):
+def decode(binary_code, decoding_dictionary, fileName='', has_progressBar=True):
     """
         Раскодирует бинарный код
+    :param fileName: Файл, который будет разархивироваться
+    :param has_progressBar: Надо ли показывать прогресс бар
     :param binary_code:
     :param decoding_dictionary: таблица, по которой происходит раскодировка
     :return: раскодированный текст
@@ -45,24 +47,33 @@ def decode(binary_code, decoding_dictionary):
             if binary_code[pointer:].startswith(key):
                 pointer += len(key)
                 decoding_text += decoding_dictionary[key]
+                if has_progressBar:
+                    print(f'{(pointer / len(binary_code)) * 100 : 3.2f}% {fileName} '
+                        f'{pointer} {len(binary_code)}', end='\r')
                 break
         else:
             raise ValueError(f"Invalid decoding dictionary")
     return decoding_text
 
 
-def encode(text, encoding_dictionary):
+def encode(text, encoding_dictionary, fileName='', has_progressBar=True):
     """
         Кодирует текст
+    :param has_progressBar: Надо ли показывать прогресс бар
+    :param fileName: Файл, который будет архивироваться
     :param text:
     :param encoding_dictionary: таблица, по которой происходит кодировка
     :return: закодированный текст в формате бинарного кода
     """
     binary_code = ''
+    count = 1
     for c in text:
         if c not in encoding_dictionary.keys():
             raise ValueError("Invalid encoding dictionary")
         binary_code += encoding_dictionary[c]
+        print(f'{(count / len(text)) * 100 : 3.2f} {fileName} '
+              f'{count} {len(text)}', end ='\r')
+        count += 1
     return binary_code
 
 
