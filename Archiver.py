@@ -8,6 +8,10 @@ def create_archive_folder(working_directory, name, fileNames):
     if os.path.exists(f'{working_directory}/{name}'):
         raise FileExistsError("An archived folder with this name has already "
                               "been created in the current directory")
+    if any(not(os.path.exists(
+            os.path.join(working_directory, fileName) for fileName in fileNames))):
+        raise FileNotFoundError("No such file in working directory")
+
     archive_folder = os.path.join(f'{working_directory}', name)
     encoding_meta_file = os.path.join(archive_folder, 'encoding_meta.json')
     decoding_meta_file = os.path.join(archive_folder, 'decoding_meta.json')
@@ -28,7 +32,7 @@ def create_archive_folder(working_directory, name, fileNames):
 
 
 def unarchive_folder(archive_folder_path, destination):
-    if not(os.path.exists(archive_folder_path)):
+    if not (os.path.exists(archive_folder_path)):
         raise FileNotFoundError("No such archive folder")
     for file in os.listdir(archive_folder_path + '/'):
         file = str(file)
@@ -41,13 +45,19 @@ def unarchive_folder(archive_folder_path, destination):
 
 
 def _save_meta(json_file, meta):
-    with open(json_file, 'w+', encoding='UTF-8') as f:
-        json.dump(meta, indent=4, ensure_ascii=False, fp=f)
+    try:
+        with open(json_file, 'w+', encoding='UTF-8') as f:
+            json.dump(meta, indent=4, ensure_ascii=False, fp=f)
+    except FileNotFoundError:
+        print(f"No such json file {json_file}")
 
 
 def _get_meta(json_file):
-    with open(json_file, 'r+', encoding='utf-8') as f:
-        return json.load(f)
+    try:
+        with open(json_file, 'r+', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"No such json file {json_file}")
 
 
 def _archive_txt(decoding_json_dict, encoding_json_dict, fileName,
@@ -61,9 +71,11 @@ def _archive_txt(decoding_json_dict, encoding_json_dict, fileName,
     encoding_table = Huffman.get_encoding_table(text)
     file = fileName.removesuffix('.txt')
     fileZip_path = os.path.join(archive_folder + '\\', f'{file}.bintxt')
-    decoding_json_dict[fileZip_path] = Huffman.swap_dictionary(encoding_table)
+    decoding_json_dict[fileZip_path] = \
+        Huffman.swap_dictionary(encoding_table)
     encoding_json_dict[fileZip_path] = encoding_table
-    bit_array = bitarray.bitarray(Huffman.encode(text, encoding_table, fileName))
+    bit_array = bitarray.bitarray(
+        Huffman.encode(text, encoding_table, fileName))
     decoding_json_dict[fileZip_path]['len'] = len(bit_array)
     with open(fileZip_path, 'wb') as f:
         bit_array.tofile(f)
@@ -79,6 +91,7 @@ def _unarchive_txt(archive_folder, filename, destination):
     binary_code = binary_code.to01()[:decoding_table['len']]
     decoded_text = Huffman.decode(binary_code, decoding_table, filename)
     unarchived_path = os.path.join(destination,
-                                   filename.removesuffix('.bintxt') + '-unzip.txt')
+                                   filename.removesuffix(
+                                       '.bintxt') + '-unzip.txt')
     with open(unarchived_path, 'w+', encoding='utf-8') as f:
         f.write(decoded_text)

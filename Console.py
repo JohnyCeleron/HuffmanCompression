@@ -7,11 +7,14 @@ def _execute_archive_command(name, fileNames):
     working_directory = fr'{os.getcwd()}'
     try:
         create_archive_folder(working_directory, name, fileNames)
-        print(f'Файлы {fileNames} успешно заархивированы в папку {name}')
     except FileExistsError as e:
+        print(e)
+    except FileNotFoundError as e:
         print(e)
     except ValueError as e:
         print(e)
+    else:
+        print(f'Файлы {fileNames} успешно заархивированы в папку {name}')
 
 
 def _execute_unarchive_command(archiveFolder, destination):
@@ -19,9 +22,12 @@ def _execute_unarchive_command(archiveFolder, destination):
     archiveFolder_path = os.path.join(working_directory, archiveFolder)
     try:
         unarchive_folder(archiveFolder_path, destination)
-        print(f'Папка {archiveFolder} успешно разархивирована в {destination}')
+    except FileNotFoundError as e:
+        print(e)
     except ValueError as e:
         print(e)
+    else:
+        print(f'Папка {archiveFolder} успешно разархивирована в {destination}')
 
 
 def main():
@@ -44,8 +50,7 @@ def main():
     unarchive_parser.add_argument('archiveFolder', type=str,
                                   help='Название папки, которую надо разархивировать')
     unarchive_parser.add_argument('destination', type=str,
-                                  help='Место, куда ты будешь разархивировать файл',
-                                  default=os.getcwd())
+                                  help='Место, куда ты будешь разархивировать файл')
 
     args = parser.parse_args()
     if args.command == 'archive':
@@ -58,6 +63,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    #print(os.getcwd())
-    #with open('C:\\Users\\asus\\OneDrive\\Рабочий стол\\MyArchiver\\tex2.txt.txt', 'r+', encoding='utf-8') as f:
-         #pass
