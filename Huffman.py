@@ -47,7 +47,7 @@ def decode(binary_code, decoding_dictionary):
                 decoding_text += decoding_dictionary[key]
                 break
         else:
-            raise ValueError("Invalid decoding dictionary")
+            raise ValueError(f"Invalid decoding dictionary")
     return decoding_text
 
 

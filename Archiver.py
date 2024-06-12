@@ -1,6 +1,7 @@
 import os
 import json
 import Huffman
+import bitarray
 
 
 def create_archive_folder(working_directory, name, fileNames):
@@ -31,7 +32,7 @@ def unarchive_folder(archive_folder_path, destination):
         raise FileNotFoundError("No such archive folder")
     for file in os.listdir(archive_folder_path + '/'):
         file = str(file)
-        if file.endswith('.txt'):
+        if file.endswith('.bin'):
             _unarchive_txt(archive_folder_path, file, destination)
         elif file.endswith('.json'):
             continue
@@ -59,23 +60,25 @@ def _archive_txt(decoding_json_dict, encoding_json_dict, fileName,
             text += line
     encoding_table = Huffman.get_encoding_table(text)
     file = fileName.removesuffix('.txt')
-    fileZip_path = os.path.join(archive_folder + '\\', f'{file}-zip.txt')
+    fileZip_path = os.path.join(archive_folder + '\\', f'{file}.bin')
     decoding_json_dict[fileZip_path] = Huffman.swap_dictionary(encoding_table)
     encoding_json_dict[fileZip_path] = encoding_table
-    with open(fileZip_path, 'w+', encoding='utf-8') as f:
-        f.write(Huffman.encode(text, encoding_table))
+    bit_array = bitarray.bitarray(Huffman.encode(text, encoding_table))
+    decoding_json_dict[fileZip_path]['len'] = len(bit_array)
+    with open(fileZip_path, 'wb') as f:
+        bit_array.tofile(f)
 
 
 def _unarchive_txt(archive_folder, filename, destination):
     filepath = os.path.join(archive_folder, filename)
     decoding_meta_file = os.path.join(archive_folder, 'decoding_meta.json')
     decoding_table = _get_meta(decoding_meta_file)[filepath]
-    binary_code = ''
-    with open(filepath, 'r+', encoding='utf-8') as f:
-        for line in f:
-            binary_code += line
+    binary_code = bitarray.bitarray()
+    with open(filepath, 'rb') as f:
+        binary_code.fromfile(f)
+    binary_code = binary_code.to01()[:decoding_table['len']]
     decoded_text = Huffman.decode(binary_code, decoding_table)
     unarchived_path = os.path.join(destination,
-                                   filename.removesuffix('-zip.txt') + '-unzip.txt')
+                                   filename.removesuffix('.bin') + '-unzip.txt')
     with open(unarchived_path, 'w+', encoding='utf-8') as f:
         f.write(decoded_text)
