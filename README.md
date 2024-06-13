@@ -1,1 +1,7 @@
-# HuffmanCompression
+##### Собственный архиватор, основанный на алгоритме сжатия Хаффмана
+---
+Поддерживает основные команды:
+* archive [file_zip_name] [fileNames] - это архивация списка названий файлов в папку file_zip_name. Пример: archive ZipBig text1.txt text2.txt. Важно: имя file_zip_name должно быть уникальным в рамках рабочей директории. 
+* unarchive [file_zip_name] [destination] - это разархивация упакованного файла file_zip_name в папку destination. Пример: unarchive ZipBig "C\:{свой путь}".
+---
+Программа является консольным приложением. Перед использованием программы надо скопировать путь до файла Console.py.
