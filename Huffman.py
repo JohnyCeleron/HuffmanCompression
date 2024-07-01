@@ -48,8 +48,7 @@ def decode(binary_code, decoding_dictionary, fileName='', has_progressBar=True):
                 pointer += len(key)
                 decoding_text += decoding_dictionary[key]
                 if has_progressBar:
-                    print(f'{(pointer / len(binary_code)) * 100 : 3.2f}% {fileName} '
-                        f'{pointer} {len(binary_code)}', end='\r')
+                    print(f'{(pointer / len(binary_code)) * 100 : 3.2f}% {fileName}', end='\r')
                 break
         else:
             raise ValueError(f"Invalid decoding dictionary")
@@ -71,8 +70,7 @@ def encode(text, encoding_dictionary, fileName='', has_progressBar=True):
         if c not in encoding_dictionary.keys():
             raise ValueError("Invalid encoding dictionary")
         binary_code += encoding_dictionary[c]
-        print(f'{(count / len(text)) * 100 : 3.2f} {fileName} '
-              f'{count} {len(text)}', end ='\r')
+        print(f'{(count / len(text)) * 100 : 3.2f}% {fileName}', end ='\r')
         count += 1
     return binary_code
 

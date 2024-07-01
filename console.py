@@ -1,6 +1,6 @@
 import argparse
 import os
-from Archiver import create_archive_folder, unarchive_folder
+from archiver import create_archive_folder, unarchive_folder
 
 
 def _execute_archive_command(name, fileNames):
@@ -17,9 +17,7 @@ def _execute_archive_command(name, fileNames):
         print(f'Файлы {fileNames} успешно заархивированы в папку {name}')
 
 
-def _execute_unarchive_command(archiveFolder, destination):
-    working_directory = os.getcwd()
-    archiveFolder_path = os.path.join(working_directory, archiveFolder)
+def _execute_unarchive_command(archiveFolder_path, destination):
     try:
         unarchive_folder(archiveFolder_path, destination)
     except FileNotFoundError as e:
@@ -27,7 +25,7 @@ def _execute_unarchive_command(archiveFolder, destination):
     except ValueError as e:
         print(e)
     else:
-        print(f'Папка {archiveFolder} успешно разархивирована в {destination}')
+        print(f'Папка {os.path.split(archiveFolder_path)[1]} успешно разархивирована в {destination}')
 
 
 def main():
