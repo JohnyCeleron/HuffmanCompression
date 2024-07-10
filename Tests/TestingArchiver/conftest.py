@@ -3,7 +3,7 @@ import os
 import shutil
 
 
-DESTINATION_DIRECTORY = fr"C:\Users\asus\OneDrive\Рабочий стол\PythonTasks\HuffmanCompression\Tests\TestingArchiver\DestinationDirectory"
+DESTINATION_DIRECTORY = fr"DestinationDirectory"
 
 
 @pytest.fixture
@@ -21,10 +21,10 @@ def empty_directory():
 
 @pytest.fixture
 def delete_archive_file():
-    working_directory_paths = [fr'C:\Users\asus\OneDrive\Рабочий стол\PythonTasks\HuffmanCompression\Tests\TestingArchiver\WorkingDirectoryWithoutCatalogs',
-                               fr'C:\Users\asus\OneDrive\Рабочий стол\PythonTasks\HuffmanCompression\Tests\TestingArchiver\WorkingDirectoryWithCatalog',
-                               fr'C:\Users\asus\OneDrive\Рабочий стол\PythonTasks\HuffmanCompression\Tests\TestingArchiver\WorkingDirectoryNotFoundFileCatalogs',
-                               fr'C:\Users\asus\OneDrive\Рабочий стол\PythonTasks\HuffmanCompression\Tests\TestingArchiver\AnotherPlaceForArchiveFolder']
+    working_directory_paths = [fr'WorkingDirectoryWithoutCatalogs',
+                               fr'WorkingDirectoryWithCatalog',
+                               fr'WorkingDirectoryNotFoundFileCatalogs',
+                               fr'WorkingDirectory']
     for working_directory_path in working_directory_paths:
         archive_path = os.path.join(working_directory_path, 'archivePackage')
         if os.path.exists(archive_path):

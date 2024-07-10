@@ -3,86 +3,124 @@ import shutil
 
 import pytest
 from archiver import create_archive_folder, unarchive_folder
-from archiver import FileCatalogsNotFoundError
+from archiver import ArchivedObjectsNotFoundError
 
-DESTINATION_DIRECTORY = fr"C:\Users\asus\OneDrive\Рабочий стол\PythonTasks\HuffmanCompression\Tests\TestingArchiver\DestinationDirectory"
+DESTINATION_DIRECTORY = fr"DestinationDirectory"
 
 
-@pytest.mark.parametrize('fileCatalogNames', [
+@pytest.mark.parametrize('archived_objects', [
     ['big.txt'], ['empty.txt'], ['test1.txt'], ['test2.txt'],
     ['big.txt', 'empty.txt'], ['test1.txt', 'test2.txt'],
     ['big.txt', 'empty.txt', 'test1.txt', 'test2.txt']
 ])
-def test_without_catalogs(fileCatalogNames, empty_directory,
+def test_without_catalogs(archived_objects, empty_directory,
                           delete_archive_file):
-    working_directory = fr'C:\Users\asus\OneDrive\Рабочий стол\PythonTasks\HuffmanCompression\Tests\TestingArchiver\WorkingDirectoryWithoutCatalogs'
-    _check(fileCatalogNames, working_directory)
+    working_directory = fr'WorkingDirectoryWithoutCatalogs'
+    _check(archived_objects, working_directory)
 
 
-@pytest.mark.parametrize('fileCatalogNames', [
+@pytest.mark.parametrize('archived_objects', [
     ['EmptyFolderOuter'],
     ['Folder1', 'test1.txt', 'test2.txt']
 ])
-def test_with_catalogs(fileCatalogNames, empty_directory, delete_archive_file):
-    working_directory = fr'C:\Users\asus\OneDrive\Рабочий стол\PythonTasks\HuffmanCompression\Tests\TestingArchiver\WorkingDirectoryWithCatalog'
-    _check(fileCatalogNames, working_directory)
+def test_with_catalogs(archived_objects, empty_directory, delete_archive_file):
+    working_directory = fr'WorkingDirectoryWithCatalog'
+    _check(archived_objects, working_directory)
 
 
-@pytest.mark.parametrize('fileCatalogNames', [
+@pytest.mark.parametrize('archived_objects', [
     ['test.txt'],
     ['Folder'],
     ['test3.txt', 'Folder2']
 ])
-def test_not_found_file_or_catalog(fileCatalogNames, empty_directory,
+def test_not_found_file_or_catalog(archived_objects, empty_directory,
                                    delete_archive_file):
-    working_directory = fr'C:\Users\asus\OneDrive\Рабочий стол\PythonTasks\HuffmanCompression\Tests\TestingArchiver\WorkingDirectoryNotFoundFileCatalogs'
-    with pytest.raises(FileCatalogsNotFoundError) as error:
+    working_directory = fr'WorkingDirectoryNotFoundFileCatalogs'
+    with pytest.raises(ArchivedObjectsNotFoundError) as error:
         create_archive_folder(working_directory, 'archivePackage',
-                              fileCatalogNames)
+                              archived_objects)
     assert str(error.value) == "No such file/catalog in working directory"
 
 
-@pytest.mark.parametrize('fileCatalogNames', [
-    ['Folder1', 'Folder2'],
-    ['test1.txt']
+@pytest.mark.parametrize('archived_objects,count_folders', [
+    (['Folder1', 'Folder2'], 2),
+    (['Folder1'], 1),
+    (['Folder1'], 3)
 ])
-def test_archiveFolder_outside_working_directory(fileCatalogNames, empty_directory,
+def test_multiple_unarchived_identical_folders(archived_objects,
+                                                 count_folders,
+                                                 empty_directory,
                                                  delete_archive_file):
-    working_directory = fr'C:\Users\asus\OneDrive\Рабочий стол\PythonTasks\HuffmanCompression\Tests\TestingArchiver\WorkingDirectory'
-    pass
-
-
-def _check(fileCatalogNames,
-           working_directory,
-           unarchive_folder_path=os.path.join(DESTINATION_DIRECTORY,
-                                              'archivePackage(Unzip)')):
-    create_archive_folder(working_directory, 'archivePackage', fileCatalogNames)
+    working_directory = fr'WorkingDirectory'
+    create_archive_folder(working_directory, 'archivePackage', archived_objects)
     archive_folder_path = os.path.join(working_directory, 'archivePackage')
-    unarchive_folder(archive_folder_path, DESTINATION_DIRECTORY)
-    for fileCatalogName in fileCatalogNames:
+    for _ in range(count_folders):
+        unarchive_folder(archive_folder_path, DESTINATION_DIRECTORY)
+    assert os.path.exists(os.path.join(DESTINATION_DIRECTORY, 'archivePackage(Unzip)'))
+    _check(archived_objects, working_directory, is_archived_folder=False)
+    for i in range(1, count_folders):
+        unarchive_folder_path = os.path.join(DESTINATION_DIRECTORY, f'archivePackage(Unzip{i})')
+        assert os.path.exists(unarchive_folder_path)
+        _check(archived_objects, working_directory, unarchive_folder_path, is_archived_folder=False)
+
+
+def _check(archived_objects,
+           working_directory,
+           unarchive_folder_path=os.path.join(DESTINATION_DIRECTORY,'archivePackage(Unzip)'),
+           is_archived_folder=True):
+    if is_archived_folder:
+        create_archive_folder(working_directory, 'archivePackage', archived_objects)
+        archive_folder_path = os.path.join(working_directory, 'archivePackage')
+        unarchive_folder(archive_folder_path, DESTINATION_DIRECTORY)
+    for archived_object in archived_objects:
         assert os.path.exists(
-            os.path.join(unarchive_folder_path, fileCatalogName))
-        for file in _get_files(
-                os.path.join(unarchive_folder_path, fileCatalogName)):
-            source_file = os.path.join(working_directory, os.path.relpath(file,
-                                                                          unarchive_folder_path))
-            destination_file = file
-            source_file_content = ''
-            destination_file_content = ''
-            with open(source_file, 'r', encoding='utf-8') as f_source, \
-                    open(destination_file, 'r',
-                         encoding='utf-8') as f_destination:
-                for line in f_source:
-                    source_file_content += line
-                for line in f_destination:
-                    destination_file_content += line
-            assert source_file_content == destination_file_content
+            os.path.join(unarchive_folder_path, archived_object))
+        _check_empty_catalogs(archived_object, unarchive_folder_path, working_directory)
+        _check_files(archived_object, unarchive_folder_path, working_directory)
+
+
+def _check_empty_catalogs(archived_object, unarchive_folder_path, working_directory):
+    path = os.path.join(working_directory, archived_object)
+    for emptyCatalog in _get_emptyCatalogs(path):
+        relative_path = os.path.relpath(emptyCatalog, working_directory)
+        assert os.path.exists(
+            os.path.join(unarchive_folder_path, relative_path))
+
+
+def _check_files(archived_object, unarchive_folder_path, working_directory):
+    path = os.path.join(working_directory, archived_object)
+    for source_file_path in _get_files(path):
+        relative_path = os.path.relpath(source_file_path, working_directory)
+        destination_file = os.path.join(unarchive_folder_path, relative_path)
+
+        assert abs(os.path.getctime(source_file_path) - os.path.getctime(destination_file)) < 10**(-6)
+        assert abs(os.path.getmtime(source_file_path) - os.path.getmtime(destination_file)) < 10**(-6)
+
+        source_file_content = ''
+        destination_file_content = ''
+        with open(source_file_path, 'r', encoding='utf-8') as f_source, \
+                open(destination_file, 'r',
+                     encoding='utf-8') as f_destination:
+            for line in f_source:
+                source_file_content += line
+            for line in f_destination:
+                destination_file_content += line
+        assert source_file_content == destination_file_content
 
 
 def _get_files(path):
     if not (os.path.isdir(path)):
         yield path
         return
-    for root, _, files in os.walk(path):
+    for root, dirs, files in os.walk(path):
         for file in files:
             yield os.path.join(root, file)
+
+
+def _get_emptyCatalogs(path):
+    if not(os.path.isdir(path)):
+        return
+    for root, dirs, _ in os.walk(path):
+        for dir in dirs:
+            if len(os.listdir(os.path.join(root, dir))) == 0:
+                yield os.path.join(root, dir)

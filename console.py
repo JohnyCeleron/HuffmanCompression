@@ -1,22 +1,26 @@
 import argparse
 import os
 from archiver import create_archive_folder, unarchive_folder
-from archiver import FileCatalogsNotFoundError
+from archiver import ArchivedObjectsNotFoundError
 
-def _execute_archive_command(archiveFolderName, fileCatalogNames):
+
+def _execute_archive_command(archiveFolderName, archivedObjectNames):
     working_directory = fr'{os.getcwd()}'
-    if fileCatalogNames[0] in ('*' or '.'):
-        fileCatalogNames = [fileCatalog for fileCatalog in os.listdir(working_directory)]
-
+    if archivedObjectNames[0] in '*':
+        archivedObjectNames = [object_name for object_name in os.listdir(working_directory)]
     try:
-        create_archive_folder(working_directory, archiveFolderName, fileCatalogNames)
-    except FileCatalogsNotFoundError as e:
+        create_archive_folder(working_directory, archiveFolderName, archivedObjectNames)
+    except ArchivedObjectsNotFoundError as e:
         print(e)
+    except ValueError as e:
+        print(e)
+    except FileExistsError:
+        print(fr'Архивированный файл с именем {archiveFolderName} уже создан')
     else:
-        print(f'Файлы/Каталоги {fileCatalogNames} успешно заархивированы в папку {archiveFolderName}')
+        print(f'Файлы/Каталоги {archivedObjectNames} успешно заархивированы в папку {archiveFolderName}')
 
 
-def _execute_unarchive_command(archiveFolder_path, destination=''):
+def _execute_unarchive_command(archiveFolder_path, destination):
     if destination == '':
         destination = os.path.split(archiveFolder_path)[0]
 
@@ -41,7 +45,7 @@ def main():
                                            help="Архивировать файлы/папки")
     archive_parser.add_argument("archiveFolderName", type=str,
                                 help="Название папки, куда будут архивироваться файлы/папки")
-    archive_parser.add_argument("fileCatalogNames", type=str, nargs='+',
+    archive_parser.add_argument("archivedObjectNames", type=str, nargs='+',
                                 help="Файлы/папки, которые будут архивироваться")
 
     # Команда разархивирования
@@ -49,13 +53,12 @@ def main():
                                              help='Разархивировать файлы')
     unarchive_parser.add_argument('archiveFolderPath', type=str,
                                   help='Путь до папки, которую надо разархивировать')
-    unarchive_parser.add_argument('destination', type=str,
-                                  help='Место, куда ты будешь разархивировать файл',
-                                  default='')
+    unarchive_parser.add_argument('--destination', type=str, default='',
+                                  help='Место, куда ты будешь разархивировать файл')
 
     args = parser.parse_args()
     if args.command == 'archive':
-        _execute_archive_command(args.archiveFolderName, args.fileNames)
+        _execute_archive_command(args.archiveFolderName, args.archivedObjectNames)
     elif args.command == 'unarchive':
         _execute_unarchive_command(args.archiveFolderPath, args.destination)
     else:
