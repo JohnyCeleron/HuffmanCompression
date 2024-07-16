@@ -7,9 +7,11 @@ from archiver import ArchivedObjectsNotFoundError
 def _execute_archive_command(archiveFolderName, archivedObjectNames):
     working_directory = fr'{os.getcwd()}'
     if archivedObjectNames[0] in '*':
-        archivedObjectNames = [object_name for object_name in os.listdir(working_directory)]
+        archivedObjectNames = [object_name for object_name in
+                               os.listdir(working_directory)]
     try:
-        create_archive_folder(working_directory, archiveFolderName, archivedObjectNames)
+        create_archive_folder(working_directory, archiveFolderName,
+                              archivedObjectNames)
     except ArchivedObjectsNotFoundError as e:
         print(e)
     except ValueError as e:
@@ -17,13 +19,22 @@ def _execute_archive_command(archiveFolderName, archivedObjectNames):
     except FileExistsError:
         print(fr'Архивированный файл с именем {archiveFolderName} уже создан')
     else:
-        print(f'Файлы/Каталоги {archivedObjectNames} успешно заархивированы в папку {archiveFolderName}')
+        print(
+            f'Файлы/Каталоги {archivedObjectNames} успешно заархивированы в папку {archiveFolderName}')
 
 
 def _execute_unarchive_command(archiveFolder_path, destination):
+    # TODO: более user_friendly_interface (Если archiveFolder_path - это
+    #  просто имя архивированной папки, который находится в рабочем каталоге,
+    #  то надо обработать этот случай)
+    def is_archiveFolderName_in_working_directory():
+        return os.path.exists(os.path.join(os.getcwd(), archiveFolder_path))
+
+    if is_archiveFolderName_in_working_directory():
+        archiveFolder_path = os.path.join(os.getcwd(), archiveFolder_path)
+
     if destination == '':
         destination = os.path.split(archiveFolder_path)[0]
-
     try:
         unarchive_folder(archiveFolder_path, destination)
     except FileNotFoundError as e:
@@ -31,7 +42,8 @@ def _execute_unarchive_command(archiveFolder_path, destination):
     except ValueError as e:
         print(e)
     else:
-        print(f'Папка {os.path.split(archiveFolder_path)[1]} успешно разархивирована в {destination}')
+        print(
+            f'Папка {os.path.split(archiveFolder_path)[1]} успешно разархивирована в {destination}')
 
 
 def main():
@@ -58,7 +70,8 @@ def main():
 
     args = parser.parse_args()
     if args.command == 'archive':
-        _execute_archive_command(args.archiveFolderName, args.archivedObjectNames)
+        _execute_archive_command(args.archiveFolderName,
+                                 args.archivedObjectNames)
     elif args.command == 'unarchive':
         _execute_unarchive_command(args.archiveFolderPath, args.destination)
     else:
