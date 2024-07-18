@@ -42,11 +42,15 @@ def decode(binary_code, decoding_dictionary, fileName='', has_progressBar=True):
     """
     pointer = 0
     decoding_text = ''
+    max_len_code = 0 if len(decoding_dictionary) == 0 else \
+        len(max(decoding_dictionary.keys(), key = lambda i: len(i)))
     while pointer < len(binary_code):
-        for key in decoding_dictionary.keys():
-            if binary_code[pointer:].startswith(key):
-                pointer += len(key)
-                decoding_text += decoding_dictionary[key]
+        for i in range(1, max_len_code + 1):
+            end_prefix = min(len(binary_code), pointer + i)
+            prefix = binary_code[pointer: end_prefix]
+            if prefix in decoding_dictionary:
+                pointer += len(prefix)
+                decoding_text += decoding_dictionary[prefix]
                 if has_progressBar:
                     print(f'{(pointer / len(binary_code)) * 100 : 3.2f}% {fileName}', end='\r')
                 break

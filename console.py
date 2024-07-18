@@ -4,6 +4,7 @@ from archiver import create_archive_folder, unarchive_folder
 from archiver import ArchivedObjectsNotFoundError
 
 
+#TODO: (user friendly interface) научиться вызывать программу без прописывания "py ...."
 def _execute_archive_command(archiveFolderName, archivedObjectNames):
     working_directory = fr'{os.getcwd()}'
     if archivedObjectNames[0] in '*':
@@ -24,9 +25,6 @@ def _execute_archive_command(archiveFolderName, archivedObjectNames):
 
 
 def _execute_unarchive_command(archiveFolder_path, destination):
-    # TODO: более user_friendly_interface (Если archiveFolder_path - это
-    #  просто имя архивированной папки, который находится в рабочем каталоге,
-    #  то надо обработать этот случай)
     def is_archiveFolderName_in_working_directory():
         return os.path.exists(os.path.join(os.getcwd(), archiveFolder_path))
 

@@ -3,10 +3,11 @@ import json
 import Huffman
 import bitarray
 from sys import platform
-from subprocess import call
+import subprocess
 import sys
-import time
+import asyncio
 import datetime
+
 
 class ArchivedObjectsNotFoundError(Exception):
     def __str__(self):
@@ -30,6 +31,7 @@ def create_archive_folder(working_directory, name, archived_objects):
     decoding_json_dict = dict()
     decoding_json_dict['empty_catalogs'] = dict()
     decoding_json_dict['file_paths'] = dict()
+    decoding_json_dict['catalogs'] = dict()
 
     for object_name in archived_objects:
         if object_name == name:
@@ -43,11 +45,12 @@ def create_archive_folder(working_directory, name, archived_objects):
                              decoding_json_dict,
                              binary_archive_file)
             else:
-                raise ValueError(f'Unknown format type for archive file {file_path}')
+                raise ValueError(
+                    f'Unknown format type for archive file {file_path}')
 
-        for empty_catalog_path in _get_emptyCatalogs(object_path):
-            relPath = os.path.relpath(empty_catalog_path, working_directory)
-            _archive_catalog(relPath, decoding_json_dict)
+        for catalog_path in _get_catalogs(object_path):
+            relPath = os.path.relpath(catalog_path, working_directory)
+            _archive_catalog(working_directory, relPath, decoding_json_dict)
 
     _save_meta(decoding_meta_file, decoding_json_dict)
 
@@ -56,10 +59,12 @@ def unarchive_folder(archive_folder_path, destination):
     if not (os.path.exists(archive_folder_path)):
         raise FileNotFoundError("No such archive folder")
     archive_folder_name = os.path.split(archive_folder_path)[1]
-    unarchive_folder_path = _get_unarchive_folder_path(archive_folder_name, destination)
+    unarchive_folder_path = _get_unarchive_folder_path(archive_folder_name,
+                                                       destination)
     os.makedirs(unarchive_folder_path)
-    _create_empty_catalogs(archive_folder_path, unarchive_folder_path)
+    _create_catalogs(archive_folder_path, unarchive_folder_path)
     _create_files(archive_folder_path, unarchive_folder_path)
+    _set_times_for_catalogs(archive_folder_path, unarchive_folder_path)
 
 
 def _create_files(archive_folder_path, unarchive_folder_path):
@@ -85,47 +90,94 @@ def _create_files(archive_folder_path, unarchive_folder_path):
         binary_code = binary_code.to01()[number_bits: number_bits + count_bits]
         number_bits += count_bits_in_file
         decoded_text = Huffman.decode(binary_code, decoding_table, file_path)
+
         if not (os.path.exists(os.path.join(os.path.split(full_path_file)[0]))):
             os.makedirs(os.path.join(os.path.split(full_path_file)[0]))
         with open(full_path_file, 'w+', encoding='utf-8') as f:
             f.write(decoded_text)
 
-        #TODO:придумать, как устанавливать время создания файлов и каталогов
-        #os.utime(full_path_file, times=(creation_time, modification_time))
-        _set_creation_time(full_path_file, creation_time)
-        _set_modification_time(full_path_file, modification_time)
+        try:
+            _set_creation_time_file(full_path_file, creation_time)
+            _set_modification_time_file(full_path_file, modification_time)
+        except OSError as e:
+            print(e)
 
 
-def _set_modification_time(path_file, modification_time):
+def _set_modification_time_file(path_file, modification_time):
     path_file = os.path.join(os.getcwd(), path_file) \
         if 'pytest' in sys.modules else path_file
 
     if platform == 'win32':
         command = f"powershell (Get-ChildItem \'{path_file}\').LastWriteTime=\'{modification_time}\'"
-        os.system(command)
+    elif platform == 'darwin':
+        command = f'SetFile -m "{modification_time}" "{path_file}"'
     else:
-        pass #TODO:написать хотя бы для macos
+        raise OSError(f'Для данной операционной системы не получилось выставить время каталога/файла {path_file}')
+    subprocess.run(command, shell=True)
 
 
-def _set_creation_time(path_file, creation_time):
+def _set_creation_time_file(path_file, creation_time):
     path_file = os.path.join(os.getcwd(), path_file) \
         if 'pytest' in sys.modules else path_file
-    #При тестировании path_file - это относительный путь, а не полный путь
+    # При тестировании path_file - это относительный путь, а не полный путь
 
     if platform == 'win32':
         command = f"powershell (Get-ChildItem \'{path_file}\').CreationTime=\'{creation_time}\'"
-        os.system(command)
+    elif platform == 'darwin':
+        command = f'SetFile -d "{creation_time}" "{path_file}"'
     else:
-        pass #TODO:написать хотя бы для macos
+        raise OSError(f'Для данной операционной системы не получилось выставить время каталога/файла {path_file}')
+    subprocess.run(command, shell=True)
 
 
-def _create_empty_catalogs(archive_folder_path, unarchive_folder_path):
+def _set_creation_time_catalog(catalog_path, creation_time):
+    catalog_path = os.path.join(os.getcwd(), catalog_path) \
+        if 'pytest' in sys.modules else catalog_path
+
+    if platform == 'win32':
+        command = f"powershell (Get-Item \'{catalog_path}\').CreationTime=\'{creation_time}\'"
+    elif platform == 'darwin':
+        command = f"" #TODO: написать для macos
+    else:
+        raise OSError(f'Для данной операционной системы не получилось выставить время каталога/файла {catalog_path}')
+    subprocess.run(command, shell=True)
+    relative_path = os.path.relpath(catalog_path, os.getcwd())
+    print(f'{relative_path}', end='\r')
+
+
+def _set_modification_time_catalog(catalog_path, modification_time):
+    catalog_path = os.path.join(os.getcwd(), catalog_path) \
+        if 'pytest' in sys.modules else catalog_path
+
+    if platform == 'win32':
+        command = f'powershell (Get-Item \'{catalog_path}\').LastWriteTime=\'{modification_time}\''
+    elif platform == 'darwin':
+        command = f"" #TODO: написать для macos
+    else:
+        raise OSError(f'Для данной операционной системы не получилось выставить время каталога/файла {catalog_path}')
+    subprocess.run(command, shell=True)
+    relative_path = os.path.relpath(catalog_path, os.getcwd())
+    print(f'{relative_path}', end='\r')
+
+
+def _create_catalogs(archive_folder_path, unarchive_folder_path):
     decoding_meta_file = os.path.join(archive_folder_path, 'decoding_meta.json')
     decoding_meta = _get_meta(decoding_meta_file)
-    for empty_catalog in decoding_meta['empty_catalogs'].keys():
-        full_path_catalog = os.path.join(unarchive_folder_path, empty_catalog)
+    for catalog in decoding_meta['catalogs'].keys():
+        full_path_catalog = os.path.join(unarchive_folder_path, catalog)
         if not (os.path.exists(full_path_catalog)):
             os.makedirs(full_path_catalog)
+
+
+def _set_times_for_catalogs(archive_folder_path, unarchive_folder_path):
+    decoding_meta_file = os.path.join(archive_folder_path, 'decoding_meta.json')
+    decoding_meta = _get_meta(decoding_meta_file)
+    for catalog in decoding_meta['catalogs'].keys():
+        full_path_catalog = os.path.join(unarchive_folder_path, catalog)
+        creation_time = decoding_meta['catalogs'][catalog]['creation_time']
+        modification_time = decoding_meta['catalogs'][catalog]['modification_time']
+        _set_creation_time_catalog(full_path_catalog, creation_time)
+        _set_modification_time_catalog(full_path_catalog, modification_time)
 
 
 def _get_unarchive_folder_path(archive_folder_name, destination):
@@ -139,9 +191,13 @@ def _get_unarchive_folder_path(archive_folder_name, destination):
     return unarchive_folder_path
 
 
-def _archive_catalog(catalog,
-                     decoding_json_dict):
-    decoding_json_dict['empty_catalogs'][catalog] = dict()
+def _archive_catalog(working_directory, catalog, decoding_json_dict):
+    decoding_json_dict['catalogs'][catalog] = dict()
+    path = os.path.join(working_directory, catalog)
+    decoding_json_dict['catalogs'][catalog]['creation_time'] \
+        = _get_creation_time(path)
+    decoding_json_dict['catalogs'][catalog]['modification_time'] \
+        = _get_modifation_time(path)
 
 
 def _archive_txt(fileName,
@@ -173,14 +229,15 @@ def _archive_txt(fileName,
         bit_array.tofile(f)
 
 
-def _get_creation_time(file_path):
-    current_timestamp = os.stat(file_path).st_ctime
+def _get_creation_time(path):
+    current_timestamp = os.stat(path).st_ctime
     return str(datetime.datetime.fromtimestamp(current_timestamp))
 
 
-def _get_modifation_time(file_path):
-    timestamp = os.stat(file_path).st_mtime
+def _get_modifation_time(path):
+    timestamp = os.stat(path).st_mtime
     return str(datetime.datetime.fromtimestamp(timestamp))
+
 
 def _save_meta(json_file, meta):
     try:
@@ -198,17 +255,6 @@ def _get_meta(json_file):
         print(f"No such json file {json_file}")
 
 
-def _get_fileAndEmptyCatalogs(path):
-    if not (os.path.isdir(path)) or len(os.listdir(path)) == 0:
-        yield path
-        return
-    for root, dirs, files in os.walk(path):
-        for file in files:
-            yield os.path.join(root, file)
-        for dir in dirs:
-            if len(os.listdir(os.path.join(root, dir))) == 0:
-                yield os.path.join(root, dir)
-
 def _get_files(path):
     if not (os.path.isdir(path)):
         yield path
@@ -218,12 +264,10 @@ def _get_files(path):
             yield os.path.join(root, file)
 
 
-def _get_emptyCatalogs(path):
-    if not(os.path.isdir(path)):
+def _get_catalogs(path):
+    if not (os.path.isdir(path)):
         return
-    if len(os.listdir(path)) == 0:
-        yield path
+    yield path
     for root, dirs, _ in os.walk(path):
         for dir in dirs:
-            if len(os.listdir(os.path.join(root, dir))) == 0:
-                yield os.path.join(root, dir)
+            yield os.path.join(root, dir)

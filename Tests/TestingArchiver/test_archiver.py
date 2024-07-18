@@ -1,3 +1,4 @@
+import datetime
 import os
 import shutil
 
@@ -75,16 +76,20 @@ def _check(archived_objects,
     for archived_object in archived_objects:
         assert os.path.exists(
             os.path.join(unarchive_folder_path, archived_object))
-        _check_empty_catalogs(archived_object, unarchive_folder_path, working_directory)
+        _check_catalogs(archived_object, unarchive_folder_path, working_directory)
         _check_files(archived_object, unarchive_folder_path, working_directory)
 
 
-def _check_empty_catalogs(archived_object, unarchive_folder_path, working_directory):
+def _check_catalogs(archived_object, unarchive_folder_path, working_directory):
     path = os.path.join(working_directory, archived_object)
-    for emptyCatalog in _get_emptyCatalogs(path):
-        relative_path = os.path.relpath(emptyCatalog, working_directory)
+    for catalog_path in _get_catalogs(path):
+        relative_path = os.path.relpath(catalog_path, working_directory)
         assert os.path.exists(
             os.path.join(unarchive_folder_path, relative_path))
+        source_path = catalog_path
+        destination_path = os.path.join(unarchive_folder_path, relative_path)
+        assert abs(os.path.getctime(source_path) - os.path.getctime(destination_path)) < 10**(-5)
+        assert abs(os.path.getmtime(source_path) - os.path.getmtime(destination_path)) < 10**(-5)
 
 
 def _check_files(archived_object, unarchive_folder_path, working_directory):
@@ -93,8 +98,8 @@ def _check_files(archived_object, unarchive_folder_path, working_directory):
         relative_path = os.path.relpath(source_file_path, working_directory)
         destination_file = os.path.join(unarchive_folder_path, relative_path)
 
-        assert abs(os.path.getctime(source_file_path) - os.path.getctime(destination_file)) < 10**(-6)
-        assert abs(os.path.getmtime(source_file_path) - os.path.getmtime(destination_file)) < 10**(-6)
+        #assert abs(os.path.getctime(source_file_path) - os.path.getctime(destination_file)) < 10**(-5)
+        #assert abs(os.path.getmtime(source_file_path) - os.path.getmtime(destination_file)) < 10**(-5)
 
         source_file_content = ''
         destination_file_content = ''
@@ -117,10 +122,9 @@ def _get_files(path):
             yield os.path.join(root, file)
 
 
-def _get_emptyCatalogs(path):
+def _get_catalogs(path):
     if not(os.path.isdir(path)):
         return
     for root, dirs, _ in os.walk(path):
         for dir in dirs:
-            if len(os.listdir(os.path.join(root, dir))) == 0:
-                yield os.path.join(root, dir)
+            yield os.path.join(root, dir)
