@@ -1,12 +1,13 @@
-import os
-import json
-import Huffman
-import bitarray
-from sys import platform
-import subprocess
-import sys
-import asyncio
 import datetime
+import json
+import os
+import sys
+from sys import platform
+
+import bitarray
+
+import Huffman
+from setterTime import setter_time_by_platform
 
 
 class ArchivedObjectsNotFoundError(Exception):
@@ -29,7 +30,6 @@ def create_archive_folder(working_directory, name, archived_objects):
     os.makedirs(archive_folder)
 
     decoding_json_dict = dict()
-    decoding_json_dict['empty_catalogs'] = dict()
     decoding_json_dict['file_paths'] = dict()
     decoding_json_dict['catalogs'] = dict()
 
@@ -64,6 +64,7 @@ def unarchive_folder(archive_folder_path, destination):
     os.makedirs(unarchive_folder_path)
     _create_catalogs(archive_folder_path, unarchive_folder_path)
     _create_files(archive_folder_path, unarchive_folder_path)
+    _set_time_for_files(archive_folder_path, unarchive_folder_path)
     _set_times_for_catalogs(archive_folder_path, unarchive_folder_path)
 
 
@@ -83,9 +84,6 @@ def _create_files(archive_folder_path, unarchive_folder_path):
             'count_bits_in_file']
         decoding_table = decoding_meta['file_paths'][file_path][
             'decoding_table']
-        creation_time = decoding_meta['file_paths'][file_path]['creation_time']
-        modification_time = decoding_meta['file_paths'][file_path][
-            'modification_time']
 
         binary_code = binary_code.to01()[number_bits: number_bits + count_bits]
         number_bits += count_bits_in_file
@@ -96,68 +94,24 @@ def _create_files(archive_folder_path, unarchive_folder_path):
         with open(full_path_file, 'w+', encoding='utf-8') as f:
             f.write(decoded_text)
 
-        try:
-            _set_creation_time_file(full_path_file, creation_time)
-            _set_modification_time_file(full_path_file, modification_time)
-        except OSError as e:
-            print(e)
 
+def _set_time_for_files(archive_folder_path, unarchive_folder_path):
+    decoding_meta_file = os.path.join(archive_folder_path, 'decoding_meta.json')
+    decoding_meta = _get_meta(decoding_meta_file)
+    for file_path in decoding_meta['file_paths'].keys():
+        full_path_file = os.path.join(unarchive_folder_path, file_path)
+        full_path_file = os.path.join(os.getcwd(), full_path_file) \
+            if 'pytest' in sys.modules else full_path_file
+        # При тестировании path_file - это относительный путь, а не полный путь
 
-def _set_modification_time_file(path_file, modification_time):
-    path_file = os.path.join(os.getcwd(), path_file) \
-        if 'pytest' in sys.modules else path_file
+        if platform not in setter_time_by_platform:
+            print(f'Для данной операционной системы не получилось выставить время каталога/файла')
+        creation_time = decoding_meta['file_paths'][file_path]['creation_time']
+        modification_time = decoding_meta['file_paths'][file_path]['modification_time']
 
-    if platform == 'win32':
-        command = f"powershell (Get-ChildItem \'{path_file}\').LastWriteTime=\'{modification_time}\'"
-    elif platform == 'darwin':
-        command = f'SetFile -m "{modification_time}" "{path_file}"'
-    else:
-        raise OSError(f'Для данной операционной системы не получилось выставить время каталога/файла {path_file}')
-    subprocess.run(command, shell=True)
-
-
-def _set_creation_time_file(path_file, creation_time):
-    path_file = os.path.join(os.getcwd(), path_file) \
-        if 'pytest' in sys.modules else path_file
-    # При тестировании path_file - это относительный путь, а не полный путь
-
-    if platform == 'win32':
-        command = f"powershell (Get-ChildItem \'{path_file}\').CreationTime=\'{creation_time}\'"
-    elif platform == 'darwin':
-        command = f'SetFile -d "{creation_time}" "{path_file}"'
-    else:
-        raise OSError(f'Для данной операционной системы не получилось выставить время каталога/файла {path_file}')
-    subprocess.run(command, shell=True)
-
-
-def _set_creation_time_catalog(catalog_path, creation_time):
-    catalog_path = os.path.join(os.getcwd(), catalog_path) \
-        if 'pytest' in sys.modules else catalog_path
-
-    if platform == 'win32':
-        command = f"powershell (Get-Item \'{catalog_path}\').CreationTime=\'{creation_time}\'"
-    elif platform == 'darwin':
-        command = f"" #TODO: написать для macos
-    else:
-        raise OSError(f'Для данной операционной системы не получилось выставить время каталога/файла {catalog_path}')
-    subprocess.run(command, shell=True)
-    relative_path = os.path.relpath(catalog_path, os.getcwd())
-    print(f'{relative_path}', end='\r')
-
-
-def _set_modification_time_catalog(catalog_path, modification_time):
-    catalog_path = os.path.join(os.getcwd(), catalog_path) \
-        if 'pytest' in sys.modules else catalog_path
-
-    if platform == 'win32':
-        command = f'powershell (Get-Item \'{catalog_path}\').LastWriteTime=\'{modification_time}\''
-    elif platform == 'darwin':
-        command = f"" #TODO: написать для macos
-    else:
-        raise OSError(f'Для данной операционной системы не получилось выставить время каталога/файла {catalog_path}')
-    subprocess.run(command, shell=True)
-    relative_path = os.path.relpath(catalog_path, os.getcwd())
-    print(f'{relative_path}', end='\r')
+        setter_time = setter_time_by_platform[platform]
+        setter_time.set_file_time(full_path_file, creation_time, 'creation_time')
+        setter_time.set_file_time(full_path_file, modification_time,'modification_time')
 
 
 def _create_catalogs(archive_folder_path, unarchive_folder_path):
@@ -176,8 +130,12 @@ def _set_times_for_catalogs(archive_folder_path, unarchive_folder_path):
         full_path_catalog = os.path.join(unarchive_folder_path, catalog)
         creation_time = decoding_meta['catalogs'][catalog]['creation_time']
         modification_time = decoding_meta['catalogs'][catalog]['modification_time']
-        _set_creation_time_catalog(full_path_catalog, creation_time)
-        _set_modification_time_catalog(full_path_catalog, modification_time)
+        full_path_catalog = os.path.join(os.getcwd(), full_path_catalog) \
+            if 'pytest' in sys.modules else full_path_catalog
+
+        setter_time = setter_time_by_platform[platform]
+        setter_time.set_catalog_time(full_path_catalog, creation_time, 'creation_time')
+        setter_time.set_catalog_time(full_path_catalog, modification_time, 'modification_time')
 
 
 def _get_unarchive_folder_path(archive_folder_name, destination):

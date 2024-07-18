@@ -1,10 +1,9 @@
-import datetime
 import os
-import shutil
 
 import pytest
-from archiver import create_archive_folder, unarchive_folder
+
 from archiver import ArchivedObjectsNotFoundError
+from archiver import create_archive_folder, unarchive_folder
 
 DESTINATION_DIRECTORY = fr"DestinationDirectory"
 
@@ -98,8 +97,8 @@ def _check_files(archived_object, unarchive_folder_path, working_directory):
         relative_path = os.path.relpath(source_file_path, working_directory)
         destination_file = os.path.join(unarchive_folder_path, relative_path)
 
-        #assert abs(os.path.getctime(source_file_path) - os.path.getctime(destination_file)) < 10**(-5)
-        #assert abs(os.path.getmtime(source_file_path) - os.path.getmtime(destination_file)) < 10**(-5)
+        assert abs(os.path.getctime(source_file_path) - os.path.getctime(destination_file)) < 10**(-5)
+        assert abs(os.path.getmtime(source_file_path) - os.path.getmtime(destination_file)) < 10**(-5)
 
         source_file_content = ''
         destination_file_content = ''
