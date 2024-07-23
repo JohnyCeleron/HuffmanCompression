@@ -42,6 +42,17 @@ def test_not_found_file_or_catalog(archived_objects, empty_directory,
     assert str(error.value) == "No such file/catalog in working directory"
 
 
+@pytest.mark.parametrize('object', [
+    'Folder1', 'Folder2', 'test1.txt'
+])
+def test_it_is_not_archive_folder(object, empty_directory, delete_archive_file):
+    working_directory = fr'WorkingDirectory'
+    archive_folder_path = os.path.join(working_directory, object)
+    with pytest.raises(FileNotFoundError) as error:
+        unarchive_folder(archive_folder_path, working_directory)
+    assert str(error.value) == "It isn't archive folder"
+
+
 @pytest.mark.parametrize('archived_objects,count_folders', [
     (['Folder1', 'Folder2'], 2),
     (['Folder1'], 1),

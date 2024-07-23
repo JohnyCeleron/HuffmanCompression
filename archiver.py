@@ -7,7 +7,7 @@ from sys import platform
 import bitarray
 
 import Huffman
-from setterTime import setter_time_by_platform
+from setter_time import setter_time_by_platform
 
 
 class ArchivedObjectsNotFoundError(Exception):
@@ -58,6 +58,9 @@ def create_archive_folder(working_directory, name, archived_objects):
 def unarchive_folder(archive_folder_path, destination):
     if not (os.path.exists(archive_folder_path)):
         raise FileNotFoundError("No such archive folder")
+    if not (os.path.exists(os.path.join(archive_folder_path, 'binary_archive.bin'))) or \
+        not (os.path.exists(os.path.join(archive_folder_path, 'decoding_meta.json'))):
+        raise FileNotFoundError("It isn't archive folder")
     archive_folder_name = os.path.split(archive_folder_path)[1]
     unarchive_folder_path = _get_unarchive_folder_path(archive_folder_name,
                                                        destination)

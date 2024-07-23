@@ -19,6 +19,8 @@ def _execute_archive_command(archiveFolderName, archivedObjectNames):
         print(e)
     except FileExistsError:
         print(fr'Архивированный файл с именем {archiveFolderName} уже создан')
+    except FileNotFoundError as e:
+        print(e)
     else:
         print(
             f'Файлы/Каталоги {archivedObjectNames} успешно заархивированы в папку {archiveFolderName}')
