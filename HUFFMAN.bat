@@ -1,2 +1,2 @@
 @echo off
-py "%~dp0\console.py" %*
+py "%~dp0\src\console.py" %*

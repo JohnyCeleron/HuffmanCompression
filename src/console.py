@@ -1,7 +1,7 @@
 import argparse
 import os
-from archiver import create_archive_folder, unarchive_folder
-from archiver import ArchivedObjectsNotFoundError
+from src.archiver import create_archive_folder, unarchive_folder
+from src.archiver import ArchivedObjectsNotFoundError
 
 
 def _execute_archive_command(archiveFolderName, archivedObjectNames):

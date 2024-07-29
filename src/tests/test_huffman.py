@@ -1,5 +1,5 @@
 import unittest
-import Huffman
+from src import Huffman
 import string
 import random
 

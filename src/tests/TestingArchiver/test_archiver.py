@@ -2,9 +2,9 @@ import os
 import pytest
 
 from sys import platform
-from archiver import ArchivedObjectsNotFoundError
-from archiver import create_archive_folder, unarchive_folder
-from setter_time import setter_time_by_platform
+from src.archiver import ArchivedObjectsNotFoundError
+from src.archiver import create_archive_folder, unarchive_folder
+from src.setter_time import setter_time_by_platform
 
 DESTINATION_DIRECTORY = fr"DestinationDirectory"
 
@@ -60,34 +60,40 @@ def test_it_is_not_archive_folder(object, empty_directory, delete_archive_file):
     (['Folder1'], 3)
 ])
 def test_multiple_unarchived_identical_folders(archived_objects,
-                                                 count_folders,
-                                                 empty_directory,
-                                                 delete_archive_file):
+                                               count_folders,
+                                               empty_directory,
+                                               delete_archive_file):
     working_directory = fr'WorkingDirectory'
     create_archive_folder(working_directory, 'archivePackage', archived_objects)
     archive_folder_path = os.path.join(working_directory, 'archivePackage')
     for _ in range(count_folders):
         unarchive_folder(archive_folder_path, DESTINATION_DIRECTORY)
-    assert os.path.exists(os.path.join(DESTINATION_DIRECTORY, 'archivePackage(Unzip)'))
+    assert os.path.exists(
+        os.path.join(DESTINATION_DIRECTORY, 'archivePackage(Unzip)'))
     _check(archived_objects, working_directory, is_archived_folder=False)
     for i in range(1, count_folders):
-        unarchive_folder_path = os.path.join(DESTINATION_DIRECTORY, f'archivePackage(Unzip{i})')
+        unarchive_folder_path = os.path.join(DESTINATION_DIRECTORY,
+                                             f'archivePackage(Unzip{i})')
         assert os.path.exists(unarchive_folder_path)
-        _check(archived_objects, working_directory, unarchive_folder_path, is_archived_folder=False)
+        _check(archived_objects, working_directory, unarchive_folder_path,
+               is_archived_folder=False)
 
 
 def _check(archived_objects,
            working_directory,
-           unarchive_folder_path=os.path.join(DESTINATION_DIRECTORY,'archivePackage(Unzip)'),
+           unarchive_folder_path=os.path.join(DESTINATION_DIRECTORY,
+                                              'archivePackage(Unzip)'),
            is_archived_folder=True):
     if is_archived_folder:
-        create_archive_folder(working_directory, 'archivePackage', archived_objects)
+        create_archive_folder(working_directory, 'archivePackage',
+                              archived_objects)
         archive_folder_path = os.path.join(working_directory, 'archivePackage')
         unarchive_folder(archive_folder_path, DESTINATION_DIRECTORY)
     for archived_object in archived_objects:
         assert os.path.exists(
             os.path.join(unarchive_folder_path, archived_object))
-        _check_catalogs(archived_object, unarchive_folder_path, working_directory)
+        _check_catalogs(archived_object, unarchive_folder_path,
+                        working_directory)
         _check_files(archived_object, unarchive_folder_path, working_directory)
 
 
@@ -140,7 +146,7 @@ def _get_files(path):
 
 
 def _get_catalogs(path):
-    if not(os.path.isdir(path)):
+    if not (os.path.isdir(path)):
         return
     for root, dirs, _ in os.walk(path):
         for dir in dirs:

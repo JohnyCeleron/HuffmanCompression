@@ -6,7 +6,7 @@ from sys import platform
 
 from bitarray import bitarray
 
-import Huffman
+from src import Huffman
 from setter_time import setter_time_by_platform
 
 
