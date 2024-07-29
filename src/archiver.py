@@ -7,7 +7,7 @@ from sys import platform
 from bitarray import bitarray
 
 from src import Huffman
-from setter_time import setter_time_by_platform
+from src.setter_time import setter_time_by_platform
 
 
 class ArchivedObjectsNotFoundError(Exception):
@@ -64,14 +64,14 @@ def _archive_files(binary_archive_file, decoding_json_dict, object_path,
                          binary_archive_file)
         else:
             raise ValueError(
-                f'Unknown format type for archive file {file_path}')
+                f'Unknown format type for archive file')
 
 
 def unarchive_folder(archive_folder_path, destination):
     if not (os.path.exists(archive_folder_path)):
         raise FileNotFoundError("No such archive folder")
     if not (os.path.exists(os.path.join(archive_folder_path, 'binary_archive.bin'))) and \
-        not (os.path.exists(os.path.join(archive_folder_path, 'decoding_meta.json'))):
+            not (os.path.exists(os.path.join(archive_folder_path, 'decoding_meta.json'))):
         raise FileNotFoundError("It isn't archive folder")
     archive_folder_name = os.path.split(archive_folder_path)[1]
     unarchive_folder_path = _get_unarchive_folder_path(archive_folder_name,
@@ -89,7 +89,8 @@ def unarchive_folder(archive_folder_path, destination):
 def _create_files(archive_folder_path, unarchive_folder_path):
     decoding_meta_file = os.path.join(archive_folder_path, 'decoding_meta.json')
     decoding_meta = _get_meta(decoding_meta_file)
-    binary_archive_file = os.path.join(archive_folder_path, 'binary_archive.bin')
+    binary_archive_file = os.path.join(archive_folder_path,
+                                       'binary_archive.bin')
 
     number_bits = 0
     for file_path in decoding_meta['file_paths'].keys():
@@ -97,8 +98,10 @@ def _create_files(archive_folder_path, unarchive_folder_path):
         full_path_file = os.path.join(unarchive_folder_path, file_path)
 
         count_bits = decoding_meta['file_paths'][file_path]['count_bits']
-        count_bits_in_file = decoding_meta['file_paths'][file_path]['count_bits_in_file']
-        decoding_table = decoding_meta['file_paths'][file_path]['decoding_table']
+        count_bits_in_file = decoding_meta['file_paths'][file_path][
+            'count_bits_in_file']
+        decoding_table = decoding_meta['file_paths'][file_path][
+            'decoding_table']
 
         binary_code = binary_code.to01()[number_bits: number_bits + count_bits]
         number_bits += count_bits_in_file
@@ -127,14 +130,18 @@ def _set_time_for_files(archive_folder_path, unarchive_folder_path):
         # При тестировании path_file - это относительный путь, а не полный путь
 
         creation_time = decoding_meta['file_paths'][file_path]['creation_time']
-        modification_time = decoding_meta['file_paths'][file_path]['modification_time']
+        modification_time = decoding_meta['file_paths'][file_path][
+            'modification_time']
 
         if platform not in setter_time_by_platform:
-            raise OSError("It was not possible to set the time of the files in this operating system")
+            raise OSError(
+                "It was not possible to set the time of the files in this operating system")
 
         setter_time = setter_time_by_platform[platform]
-        setter_time.set_file_time(full_path_file, creation_time, 'creation_time')
-        setter_time.set_file_time(full_path_file, modification_time,'modification_time')
+        setter_time.set_file_time(full_path_file, creation_time,
+                                  'creation_time')
+        setter_time.set_file_time(full_path_file, modification_time,
+                                  'modification_time')
 
 
 def _create_catalogs(archive_folder_path, unarchive_folder_path):
@@ -152,16 +159,20 @@ def _set_times_for_catalogs(archive_folder_path, unarchive_folder_path):
     for catalog in decoding_meta['catalogs'].keys():
         full_path_catalog = os.path.join(unarchive_folder_path, catalog)
         creation_time = decoding_meta['catalogs'][catalog]['creation_time']
-        modification_time = decoding_meta['catalogs'][catalog]['modification_time']
+        modification_time = decoding_meta['catalogs'][catalog][
+            'modification_time']
         full_path_catalog = os.path.join(os.getcwd(), full_path_catalog) \
             if 'pytest' in sys.modules else full_path_catalog
 
         if platform not in setter_time_by_platform:
-            raise OSError('It was not possible to set the time of the catalogs in this operating system')
+            raise OSError(
+                'It was not possible to set the time of the catalogs in this operating system')
 
         setter_time = setter_time_by_platform[platform]
-        setter_time.set_catalog_time(full_path_catalog, creation_time, 'creation_time')
-        setter_time.set_catalog_time(full_path_catalog, modification_time, 'modification_time')
+        setter_time.set_catalog_time(full_path_catalog, creation_time,
+                                     'creation_time')
+        setter_time.set_catalog_time(full_path_catalog, modification_time,
+                                     'modification_time')
 
 
 def _get_unarchive_folder_path(archive_folder_name, destination):
@@ -195,7 +206,8 @@ def _archive_txt(fileName,
         decoding_json_dict['file_paths'][fileName] = dict()
 
     decoding_table = Huffman.swap_dictionary(encoding_table)
-    decoding_json_dict['file_paths'][fileName]['decoding_table'] = decoding_table
+    decoding_json_dict['file_paths'][fileName][
+        'decoding_table'] = decoding_table
 
     bit_array = bitarray(Huffman.encode(text, encoding_table, fileName))
     decoding_json_dict['file_paths'][fileName]['count_bits'] = len(bit_array)

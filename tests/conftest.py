@@ -24,7 +24,8 @@ def delete_archive_file():
     working_directory_paths = [fr'WorkingDirectoryWithoutCatalogs',
                                fr'WorkingDirectoryWithCatalog',
                                fr'WorkingDirectoryNotFoundFileCatalogs',
-                               fr'WorkingDirectory']
+                               fr'WorkingDirectory',
+                               fr'UnknownExtensions']
     for working_directory_path in working_directory_paths:
         archive_path = os.path.join(working_directory_path, 'archivePackage')
         if os.path.exists(archive_path):

@@ -11,17 +11,17 @@ class Node:
 
     def __gt__(self, other):
         if not isinstance(other, Node):
-            raise ValueError("The other object must be of the Node type")
+            raise TypeError("The other object must be of the Node type")
         return self.weight > other.weight
 
     def __lt__(self, other):
         if not isinstance(other, Node):
-            raise ValueError("The other object must be of the Node type")
+            raise TypeError("The other object must be of the Node type")
         return self.weight < other.weight
 
     def __eq__(self, other):
         if not isinstance(other, Node):
-            raise ValueError("The other object must be of the Node type")
+            raise TypeError("The other object must be of the Node type")
         return self.weight == other.weight
 
     def __hash__(self):

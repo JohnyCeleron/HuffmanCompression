@@ -79,6 +79,30 @@ def test_multiple_unarchived_identical_folders(archived_objects,
                is_archived_folder=False)
 
 
+def test_archive_folder_exist_error(delete_archive_file):
+    working_directory = fr'WorkingDirectory'
+    create_archive_folder(working_directory, 'archivePackage', ['Folder1'])
+    with pytest.raises(FileExistsError) as error:
+        create_archive_folder(working_directory, 'archivePackage', ['test1.txt'])
+    assert str(error.value) == "An archived folder with this name has already " \
+                               "been created in the current directory"
+
+
+@pytest.mark.parametrize('file', ['test.bat', 'test.json', 'test.png'])
+def test_unknown_extensions(file, delete_archive_file):
+    working_directory = fr'UnknownExtensions'
+    with pytest.raises(ValueError) as error:
+        create_archive_folder(working_directory, 'archivePackage', [file])
+    assert str(error.value) == f'Unknown format type for archive file'
+
+
+@pytest.mark.parametrize('archive_folder_path', ['', 'any path', 'C:archiver.py'])
+def test_no_such_archive_folder(archive_folder_path):
+    with pytest.raises(FileNotFoundError) as error:
+        unarchive_folder(archive_folder_path, '')
+    assert str(error.value) == f"No such archive folder"
+
+
 def _check(archived_objects,
            working_directory,
            unarchive_folder_path=os.path.join(DESTINATION_DIRECTORY,
