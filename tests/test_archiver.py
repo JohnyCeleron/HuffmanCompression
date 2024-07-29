@@ -44,7 +44,7 @@ def test_not_found_file_or_catalog(archived_objects, empty_directory,
 
 
 @pytest.mark.parametrize('object', [
-    'Folder1', 'Folder2', 'test1.txt'
+    'Folder1', 'Folder2', 'test1.txt', ''
 ])
 def test_it_is_not_archive_folder(object, empty_directory, delete_archive_file):
     working_directory = fr'WorkingDirectory'

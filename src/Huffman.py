@@ -139,5 +139,4 @@ def _walk_through_Huffman_tree(root):
 
 
 if __name__ == '__main__':
-    text = 'asdflllds;'
-    print(get_encoding_table(text))
+    pass
