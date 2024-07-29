@@ -52,5 +52,5 @@ class MacOSSetterTime(SetterTimeFactory):
 
 setter_time_by_platform = {
     'win32': WindowsSetterTime,
-    'darwin': MacOSSetterTime
+    #'darwin': MacOSSetterTime
 }

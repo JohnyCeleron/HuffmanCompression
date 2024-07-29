@@ -1,9 +1,10 @@
 import os
-
 import pytest
 
+from sys import platform
 from archiver import ArchivedObjectsNotFoundError
 from archiver import create_archive_folder, unarchive_folder
+from setter_time import setter_time_by_platform
 
 DESTINATION_DIRECTORY = fr"DestinationDirectory"
 
@@ -98,29 +99,35 @@ def _check_catalogs(archived_object, unarchive_folder_path, working_directory):
             os.path.join(unarchive_folder_path, relative_path))
         source_path = catalog_path
         destination_path = os.path.join(unarchive_folder_path, relative_path)
-        assert abs(os.path.getctime(source_path) - os.path.getctime(destination_path)) < 10**(-5)
-        assert abs(os.path.getmtime(source_path) - os.path.getmtime(destination_path)) < 10**(-5)
+
+        _check_time(source_path, destination_path)
 
 
 def _check_files(archived_object, unarchive_folder_path, working_directory):
     path = os.path.join(working_directory, archived_object)
-    for source_file_path in _get_files(path):
-        relative_path = os.path.relpath(source_file_path, working_directory)
+    for source_file in _get_files(path):
+        relative_path = os.path.relpath(source_file, working_directory)
         destination_file = os.path.join(unarchive_folder_path, relative_path)
 
-        assert abs(os.path.getctime(source_file_path) - os.path.getctime(destination_file)) < 10**(-5)
-        assert abs(os.path.getmtime(source_file_path) - os.path.getmtime(destination_file)) < 10**(-5)
+        _check_time(source_file, destination_file)
 
-        source_file_content = ''
-        destination_file_content = ''
-        with open(source_file_path, 'r', encoding='utf-8') as f_source, \
-                open(destination_file, 'r',
-                     encoding='utf-8') as f_destination:
-            for line in f_source:
-                source_file_content += line
-            for line in f_destination:
-                destination_file_content += line
+        source_file_content = _get_text_from_file(source_file)
+        destination_file_content = _get_text_from_file(destination_file)
         assert source_file_content == destination_file_content
+
+
+def _check_time(source, destination):
+    if platform in setter_time_by_platform:
+        assert abs(os.path.getctime(source) - os.path.getctime(destination)) < 10 ** (-5)
+        assert abs(os.path.getmtime(source) - os.path.getmtime(destination)) < 10 ** (-5)
+
+
+def _get_text_from_file(file_path):
+    text = ''
+    with open(file_path, 'r+', encoding='utf-8') as f:
+        for line in f:
+            text += line
+    return text
 
 
 def _get_files(path):

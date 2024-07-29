@@ -40,6 +40,11 @@ def decode(binary_code, decoding_dictionary, fileName='', has_progressBar=True):
     :param decoding_dictionary: таблица, по которой происходит раскодировка
     :return: раскодированный текст
     """
+    def print_progress():
+        if has_progressBar:
+            print(f'{(pointer / len(binary_code)) * 100 : 3.2f}% {fileName}', end='\r')
+
+
     pointer = 0
     decoding_text = ''
     max_len_code = 0 if len(decoding_dictionary) == 0 else \
@@ -51,8 +56,7 @@ def decode(binary_code, decoding_dictionary, fileName='', has_progressBar=True):
             if prefix in decoding_dictionary:
                 pointer += len(prefix)
                 decoding_text += decoding_dictionary[prefix]
-                if has_progressBar:
-                    print(f'{(pointer / len(binary_code)) * 100 : 3.2f}% {fileName}', end='\r')
+                print_progress()
                 break
         else:
             raise ValueError(f"Invalid decoding dictionary")
@@ -68,13 +72,17 @@ def encode(text, encoding_dictionary, fileName='', has_progressBar=True):
     :param encoding_dictionary: таблица, по которой происходит кодировка
     :return: закодированный текст в формате бинарного кода
     """
+    def print_progress():
+        if has_progressBar:
+            print(f'{(count / len(text)) * 100 : 3.2f}% {fileName}', end='\r')
+
     binary_code = ''
     count = 1
     for c in text:
         if c not in encoding_dictionary.keys():
             raise ValueError("Invalid encoding dictionary")
         binary_code += encoding_dictionary[c]
-        print(f'{(count / len(text)) * 100 : 3.2f}% {fileName}', end ='\r')
+        print_progress()
         count += 1
     return binary_code
 

@@ -4,7 +4,7 @@ import os
 import sys
 from sys import platform
 
-import bitarray
+from bitarray import bitarray
 
 import Huffman
 from setter_time import setter_time_by_platform
@@ -15,8 +15,8 @@ class ArchivedObjectsNotFoundError(Exception):
         return "No such file/catalog in working directory"
 
 
-def create_archive_folder(working_directory, name, archived_objects):
-    if os.path.exists(f'{working_directory}/{name}'):
+def create_archive_folder(working_directory, archiver_name, archived_objects):
+    if os.path.exists(f'{working_directory}/{archiver_name}'):
         raise FileExistsError("An archived folder with this name has already "
                               "been created in the current directory")
 
@@ -24,41 +24,53 @@ def create_archive_folder(working_directory, name, archived_objects):
            for object in archived_objects):
         raise ArchivedObjectsNotFoundError
 
-    archive_folder = os.path.join(f'{working_directory}', name)
+    archive_folder = os.path.join(f'{working_directory}', archiver_name)
     decoding_meta_file = os.path.join(archive_folder, 'decoding_meta.json')
-    binary_archive_file = os.path.join(archive_folder, 'binary_archive.bin')
     os.makedirs(archive_folder)
+    decoding_json_dict = _create_decoding_json_dict()
+    binary_archive_file = os.path.join(archive_folder, 'binary_archive.bin')
 
+    for object_name in archived_objects:
+        if object_name == archiver_name:
+            pass
+        object_path = os.path.join(working_directory, object_name)
+        _archive_files(binary_archive_file, decoding_json_dict, object_path,
+                       working_directory)
+        _archive_catalogs(decoding_json_dict, object_path, working_directory)
+    _save_meta(decoding_meta_file, decoding_json_dict)
+
+
+def _create_decoding_json_dict():
     decoding_json_dict = dict()
     decoding_json_dict['file_paths'] = dict()
     decoding_json_dict['catalogs'] = dict()
+    return decoding_json_dict
 
-    for object_name in archived_objects:
-        if object_name == name:
-            continue
-        object_path = os.path.join(working_directory, object_name)
-        for file_path in _get_files(object_path):
-            relPath = os.path.relpath(file_path, working_directory)
-            if file_path.endswith('.txt'):
-                _archive_txt(relPath,
-                             working_directory,
-                             decoding_json_dict,
-                             binary_archive_file)
-            else:
-                raise ValueError(
-                    f'Unknown format type for archive file {file_path}')
 
-        for catalog_path in _get_catalogs(object_path):
-            relPath = os.path.relpath(catalog_path, working_directory)
-            _archive_catalog(working_directory, relPath, decoding_json_dict)
+def _archive_catalogs(decoding_json_dict, object_path, working_directory):
+    for catalog_path in _get_catalogs(object_path):
+        relPath = os.path.relpath(catalog_path, working_directory)
+        _archive_catalog(working_directory, relPath, decoding_json_dict)
 
-    _save_meta(decoding_meta_file, decoding_json_dict)
+
+def _archive_files(binary_archive_file, decoding_json_dict, object_path,
+                   working_directory):
+    for file_path in _get_files(object_path):
+        relPath = os.path.relpath(file_path, working_directory)
+        if file_path.endswith('.txt'):
+            _archive_txt(relPath,
+                         working_directory,
+                         decoding_json_dict,
+                         binary_archive_file)
+        else:
+            raise ValueError(
+                f'Unknown format type for archive file {file_path}')
 
 
 def unarchive_folder(archive_folder_path, destination):
     if not (os.path.exists(archive_folder_path)):
         raise FileNotFoundError("No such archive folder")
-    if not (os.path.exists(os.path.join(archive_folder_path, 'binary_archive.bin'))) or \
+    if not (os.path.exists(os.path.join(archive_folder_path, 'binary_archive.bin'))) and \
         not (os.path.exists(os.path.join(archive_folder_path, 'decoding_meta.json'))):
         raise FileNotFoundError("It isn't archive folder")
     archive_folder_name = os.path.split(archive_folder_path)[1]
@@ -67,26 +79,26 @@ def unarchive_folder(archive_folder_path, destination):
     os.makedirs(unarchive_folder_path)
     _create_catalogs(archive_folder_path, unarchive_folder_path)
     _create_files(archive_folder_path, unarchive_folder_path)
-    _set_time_for_files(archive_folder_path, unarchive_folder_path)
-    _set_times_for_catalogs(archive_folder_path, unarchive_folder_path)
+    try:
+        _set_time_for_files(archive_folder_path, unarchive_folder_path)
+        _set_times_for_catalogs(archive_folder_path, unarchive_folder_path)
+    except OSError as e:
+        print(e)
 
 
 def _create_files(archive_folder_path, unarchive_folder_path):
     decoding_meta_file = os.path.join(archive_folder_path, 'decoding_meta.json')
     decoding_meta = _get_meta(decoding_meta_file)
+    binary_archive_file = os.path.join(archive_folder_path, 'binary_archive.bin')
+
     number_bits = 0
     for file_path in decoding_meta['file_paths'].keys():
-        binary_code = bitarray.bitarray()
+        binary_code = _get_binary_code_form_file(binary_archive_file)
         full_path_file = os.path.join(unarchive_folder_path, file_path)
-        binary_archive_file = os.path.join(archive_folder_path,
-                                           'binary_archive.bin')
-        with open(binary_archive_file, 'rb') as f:
-            binary_code.fromfile(f)
+
         count_bits = decoding_meta['file_paths'][file_path]['count_bits']
-        count_bits_in_file = decoding_meta['file_paths'][file_path][
-            'count_bits_in_file']
-        decoding_table = decoding_meta['file_paths'][file_path][
-            'decoding_table']
+        count_bits_in_file = decoding_meta['file_paths'][file_path]['count_bits_in_file']
+        decoding_table = decoding_meta['file_paths'][file_path]['decoding_table']
 
         binary_code = binary_code.to01()[number_bits: number_bits + count_bits]
         number_bits += count_bits_in_file
@@ -98,6 +110,13 @@ def _create_files(archive_folder_path, unarchive_folder_path):
             f.write(decoded_text)
 
 
+def _get_binary_code_form_file(binary_file):
+    binary_code = bitarray()
+    with open(binary_file, 'rb') as f:
+        binary_code.fromfile(f)
+    return binary_code
+
+
 def _set_time_for_files(archive_folder_path, unarchive_folder_path):
     decoding_meta_file = os.path.join(archive_folder_path, 'decoding_meta.json')
     decoding_meta = _get_meta(decoding_meta_file)
@@ -107,10 +126,11 @@ def _set_time_for_files(archive_folder_path, unarchive_folder_path):
             if 'pytest' in sys.modules else full_path_file
         # При тестировании path_file - это относительный путь, а не полный путь
 
-        if platform not in setter_time_by_platform:
-            print(f'Для данной операционной системы не получилось выставить время каталога/файла')
         creation_time = decoding_meta['file_paths'][file_path]['creation_time']
         modification_time = decoding_meta['file_paths'][file_path]['modification_time']
+
+        if platform not in setter_time_by_platform:
+            raise OSError("It was not possible to set the time of the files in this operating system")
 
         setter_time = setter_time_by_platform[platform]
         setter_time.set_file_time(full_path_file, creation_time, 'creation_time')
@@ -135,6 +155,9 @@ def _set_times_for_catalogs(archive_folder_path, unarchive_folder_path):
         modification_time = decoding_meta['catalogs'][catalog]['modification_time']
         full_path_catalog = os.path.join(os.getcwd(), full_path_catalog) \
             if 'pytest' in sys.modules else full_path_catalog
+
+        if platform not in setter_time_by_platform:
+            raise OSError('It was not possible to set the time of the catalogs in this operating system')
 
         setter_time = setter_time_by_platform[platform]
         setter_time.set_catalog_time(full_path_catalog, creation_time, 'creation_time')
@@ -165,19 +188,16 @@ def _archive_txt(fileName,
                  working_directory,
                  decoding_json_dict,
                  binary_archive_file):
-    text = ''
     full_path = os.path.join(working_directory, fileName)
-    with open(full_path, 'r+', encoding='utf-8') as f:
-        for line in f:
-            text += line
+    text = _get_text_from_file(full_path)
     encoding_table = Huffman.get_encoding_table(text)
     if fileName not in decoding_json_dict['file_paths']:
         decoding_json_dict['file_paths'][fileName] = dict()
-    decoding_json_dict['file_paths'][fileName]['decoding_table'] = \
-        Huffman.swap_dictionary(encoding_table)
-    bit_array = bitarray.bitarray(
-        Huffman.encode(text, encoding_table, fileName))
 
+    decoding_table = Huffman.swap_dictionary(encoding_table)
+    decoding_json_dict['file_paths'][fileName]['decoding_table'] = decoding_table
+
+    bit_array = bitarray(Huffman.encode(text, encoding_table, fileName))
     decoding_json_dict['file_paths'][fileName]['count_bits'] = len(bit_array)
     decoding_json_dict['file_paths'][fileName]['count_bits_in_file'] = \
         len(bit_array) + (8 - len(bit_array) % 8) % 8
@@ -188,6 +208,14 @@ def _archive_txt(fileName,
 
     with open(binary_archive_file, 'ab') as f:
         bit_array.tofile(f)
+
+
+def _get_text_from_file(file_path):
+    text = ''
+    with open(file_path, 'r+', encoding='utf-8') as f:
+        for line in f:
+            text += line
+    return text
 
 
 def _get_creation_time(path):
