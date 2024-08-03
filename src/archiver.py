@@ -16,13 +16,14 @@ class ArchivedObjectsNotFoundError(Exception):
 
 
 def create_archive_folder(working_directory, archiver_name, archived_objects):
-    if os.path.exists(f'{working_directory}/{archiver_name}'):
+    if os.path.exists(os.path.join(working_directory, archiver_name)):
         raise FileExistsError("An archived folder with this name has already "
                               "been created in the current directory")
 
     if any(not (os.path.exists(os.path.join(working_directory, object)))
            for object in archived_objects):
         raise ArchivedObjectsNotFoundError
+    _has_unknown_extension_files(working_directory, archived_objects)
 
     archive_folder = os.path.join(f'{working_directory}', archiver_name)
     decoding_meta_file = os.path.join(archive_folder, 'decoding_meta.json')
@@ -38,6 +39,16 @@ def create_archive_folder(working_directory, archiver_name, archived_objects):
                        working_directory)
         _archive_catalogs(decoding_json_dict, object_path, working_directory)
     _save_meta(decoding_meta_file, decoding_json_dict)
+
+
+def _has_unknown_extension_files(working_directory, archived_objects):
+    files = (archive_object for archive_object in archived_objects if
+             os.path.isfile(os.path.join(working_directory, archive_object)))
+    AVAILABLE_EXTENSIONS = ['.txt']
+    for file in files:
+        _, extension = os.path.splitext(file)
+        if extension not in AVAILABLE_EXTENSIONS:
+            raise ValueError(f'Unknown extension for archive file {file}')
 
 
 def _create_decoding_json_dict():
@@ -62,9 +73,6 @@ def _archive_files(binary_archive_file, decoding_json_dict, object_path,
                          working_directory,
                          decoding_json_dict,
                          binary_archive_file)
-        else:
-            raise ValueError(
-                f'Unknown format type for archive file')
 
 
 def unarchive_folder(archive_folder_path, destination):

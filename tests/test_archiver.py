@@ -93,7 +93,7 @@ def test_unknown_extensions(file, delete_archive_file):
     working_directory = fr'UnknownExtensions'
     with pytest.raises(ValueError) as error:
         create_archive_folder(working_directory, 'archivePackage', [file])
-    assert str(error.value) == f'Unknown format type for archive file'
+    assert str(error.value) == f'Unknown extension for archive file {file}'
 
 
 @pytest.mark.parametrize('archive_folder_path', ['', 'any path', 'C:archiver.py'])

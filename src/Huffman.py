@@ -42,7 +42,7 @@ def decode(binary_code, decoding_dictionary, fileName='', has_progressBar=True):
     """
     def print_progress():
         if has_progressBar:
-            print(f'{(pointer / len(binary_code)) * 100 : 3.2f}% {fileName}', end='\r')
+            print('\033[K', f'{(pointer / len(binary_code)) * 100 : 3.2f}% {fileName}', end='\r')
 
 
     pointer = 0
@@ -74,7 +74,7 @@ def encode(text, encoding_dictionary, fileName='', has_progressBar=True):
     """
     def print_progress():
         if has_progressBar:
-            print(f'{(count / len(text)) * 100 : 3.2f}% {fileName}', end='\r')
+            print('\033[K', f'{(count / len(text)) * 100 : 3.2f}% {fileName}', end='\r')
 
     binary_code = ''
     count = 1
